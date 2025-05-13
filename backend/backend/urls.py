@@ -16,9 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from sklep_gier.views import hello
+from sklep_gier.views import hello, get_publishers
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/hello/', hello),
+    path('api/publishers/', get_publishers),
 ]

@@ -86,12 +86,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'sklep_gier',
-        'USER': 'sklep_user',
-        'PASSWORD': 'tajnehaslo',
+        'USER': 'gameuser',
+        'PASSWORD': 'gamepass',
         'HOST': 'localhost',
         'PORT': '5432',
     }
 }
+
+AUTH_USER_MODEL = 'sklep_gier.User'
 
 
 # Password validation
