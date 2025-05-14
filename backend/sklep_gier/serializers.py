@@ -15,6 +15,7 @@ class PublisherSerializer(serializers.ModelSerializer):
 class GameSerializer(serializers.ModelSerializer):
     genres = GenreSerializer(many=True, read_only=True)
     publisher = PublisherSerializer(many=False, read_only=True)
+    cover_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Game
@@ -28,3 +29,11 @@ class GameSerializer(serializers.ModelSerializer):
             "genres",
             "cover_image",
         )
+    
+    def get_cover_image(self, obj):
+        if not obj.cover_image:
+            return None
+        request = self.context.get("request")
+        url = obj.cover_image.url
+
+        return request.build_absolute_uri(url) if request else url
