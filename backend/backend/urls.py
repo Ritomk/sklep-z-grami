@@ -15,11 +15,18 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
-from sklep_gier.views import hello, get_publishers
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from sklep_gier.views import GameViewSet, hello, get_publishers  # keep existing views
+from django.conf import settings
+from django.conf.urls.static import static
+
+router = DefaultRouter()
+router.register(r"games", GameViewSet, basename="game")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("api/", include(router.urls)),
     path('api/hello/', hello),
     path('api/publishers/', get_publishers),
 ]
