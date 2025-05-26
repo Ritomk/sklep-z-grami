@@ -9,14 +9,13 @@ from sklep_gier.views import (
     GameViewSet,
     hello,
     get_publishers,
-    register
+    register,
+    library,
+    EmailTokenObtainPairView,
 )
 
 # Import widoków JWT
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import TokenRefreshView
 
 # Rejestracja widoków opartych o ViewSet (np. /api/games/)
 router = DefaultRouter()
@@ -32,13 +31,14 @@ urlpatterns = [
     # Proste endpointy funkcjonalne
     path('api/hello/', hello),
     path('api/publishers/', get_publishers),
+    path('api/library/', library, name='library'),
 
     # Rejestracja użytkownika (dostępna bez autoryzacji)
-    path('api/register/', register, name='register'),
+    path("api/register/", register, name="register"),
 
     # Endpointy JWT (logowanie i odświeżenie tokenu)
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path("api/token/", EmailTokenObtainPairView.as_view(),name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
 
 # Obsługa plików medialnych w trybie deweloperskim

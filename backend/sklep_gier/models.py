@@ -3,7 +3,26 @@ from django.contrib.auth.models import AbstractUser
 
 # Użytkownik
 class User(AbstractUser):
-    library = models.ManyToManyField('Game', related_name='owned_by')
+    username = models.CharField(
+        "nickname",
+        max_length=150,
+        unique=True,
+        null=True,        
+        blank=True,
+    )
+
+    email = models.EmailField("e-mail address", unique=True)
+    birth_date = models.DateField(null=True, blank=True)
+
+    library = models.ManyToManyField("Game", related_name="owned_by")
+
+    USERNAME_FIELD = "email"       
+    REQUIRED_FIELDS = ["username"]  
+
+    def __str__(self):
+        return self.email
+
+
 
 # Wydawca
 class Publisher(models.Model):

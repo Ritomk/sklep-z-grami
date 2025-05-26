@@ -9,40 +9,11 @@ import {
 } from "@/components/ui/select";
 import {
   Search as SearchIcon,
-  Home as HomeIcon,
-  Library as LibraryIcon,
-  ShoppingBag,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import GameCard from "@/components/GameCard";
 import type { Game } from "@/components/GameCard";
 
-/* -------------------------------------------------------------------------- */
-/*                               Sidebar bits                                 */
-/* -------------------------------------------------------------------------- */
-
-const NavItem: FC<{ icon: LucideIcon; label: string }> = ({ icon: Icon, label }) => (
-  <button
-    className="flex items-center gap-3 text-sm font-medium hover:text-white transition-colors"
-    aria-label={label}
-  >
-    <Icon size={20} />
-    <span>{label}</span>
-  </button>
-);
-
-const Sidebar: FC = () => (
-  <aside className="hidden md:flex md:w-60 bg-neutral-800 text-neutral-200 p-4 flex-col gap-4">
-    <NavItem icon={HomeIcon} label="Home" />
-    <NavItem icon={LibraryIcon} label="Library" />
-    <NavItem icon={ShoppingBag} label="Store" />
-  </aside>
-);
-
-/* -------------------------------------------------------------------------- */
-/*                             Main page component                             */
-/* -------------------------------------------------------------------------- */
 
 type GenreFilter =
   | "All"
@@ -88,12 +59,9 @@ useEffect(() => {
     });
   }, [games, search, genreFilter]);
 
-  /* ------------------------------- render --------------------------------- */
   return (
     <div className="flex h-screen bg-neutral-900 text-white font-sans">
-      <Sidebar />
 
-      {/* ---------------------------- content ---------------------------- */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* header */}
         <header className="sticky top-0 z-20 bg-neutral-900/80 backdrop-blur p-4 flex flex-col md:flex-row md:items-center gap-4">
