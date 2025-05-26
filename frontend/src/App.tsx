@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import LibraryPage from './pages/LibraryPage';
 import LoggedOut from "./pages/LoggedOutPage";
+import GameDetails from './pages/GameDetailPage';
 import Sidebar from './components/SideBar';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -41,6 +42,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/logout" element={<LoggedOut />} />
+            <Route path="/games/:id" element={<GameDetails />} />
             {/* Protected route */}
             <Route 
               path="/library" 

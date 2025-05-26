@@ -82,15 +82,45 @@ def register(request):
         status=status.HTTP_201_CREATED,
     )
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def library(request):
-    games = request.user.library.all()
-    serializer = GameSerializer(games, many=True, context={"request": request})
-    return Response(serializer.data)
-
 # Widok tylko do odczytu gier
 class GameViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Game.objects.prefetch_related("genres").all()
     serializer_class = GameSerializer
+
+#Endpoint dla biblioteki
+@api_view(["GET", "POST", "DELETE"])
+@permission_classes([IsAuthenticated])
+def library(request):
+    user = request.user
+
+    if request.method == "GET":
+        games = user.library.all()
+        data = GameSerializer(games, many=True, context={"request": request}).data
+        return Response(data)
+
+    if request.method == "POST":
+        game_id = request.data.get("game")
+        if not game_id:
+            return Response({"detail": "game id required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            game = Game.objects.get(pk=game_id)
+        except Game.DoesNotExist:
+            return Response({"detail": "game not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user.library.add(game)
+        return Response({"detail": "added"}, status=status.HTTP_201_CREATED)
+
+    if request.method == "DELETE":
+        game_id = request.data.get("game")
+        if not game_id:
+            return Response({"detail": "game id required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            game = Game.objects.get(pk=game_id)
+        except Game.DoesNotExist:
+            return Response({"detail": "game not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user.library.remove(game)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 

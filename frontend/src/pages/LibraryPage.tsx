@@ -1,6 +1,5 @@
-// src/pages/LibraryPage.tsx
 import { useEffect, useState } from "react";
-import api from "../lib/api"; // <- Twój helper do axios/fetch
+import api from "../lib/api";
 
 type Publisher = {
   id: number;
