@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
-from .models import Genre, Game, Publisher, User
+from .models import Genre, Game, Publisher, User, Cart, CartItem
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,8 +37,8 @@ class GameSerializer(serializers.ModelSerializer):
             return None
         request = self.context.get("request")
         url = obj.cover_image.url
-
         return request.build_absolute_uri(url) if request else url
+
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = "email"
@@ -61,3 +61,38 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             "access": str(refresh.access_token),
             "nickname": user.username,         
         }
+
+
+#
+# ---- DODANE: Serializery dla koszyka ----
+#
+
+class CartItemSerializer(serializers.ModelSerializer):
+    game = GameSerializer(read_only=True)
+    game_id = serializers.PrimaryKeyRelatedField(
+        source="game", queryset=Game.objects.all(), write_only=True
+    )
+    subtotal = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CartItem
+        fields = ("id", "game", "game_id", "quantity", "subtotal")
+
+    def get_subtotal(self, obj):
+        return obj.quantity * obj.game.price
+
+
+class CartSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True, source="cartitem_set", read_only=True)
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Cart
+        fields = ("id", "user", "items", "total_price")
+        read_only_fields = ("user",)
+
+    def get_total_price(self, obj):
+        total = 0
+        for item in obj.cartitem_set.all():
+            total += item.quantity * item.game.price
+        return total

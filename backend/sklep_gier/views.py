@@ -6,8 +6,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-from .models import Publisher, Game, User
-from .serializers import GameSerializer, EmailTokenObtainPairSerializer
+
+from .models import Publisher, Game, User, Cart, CartItem
+from .serializers import (
+    GenreSerializer,
+    PublisherSerializer,
+    GameSerializer,
+    EmailTokenObtainPairSerializer,
+    CartSerializer,
+    CartItemSerializer,
+)
 
 # Testowy endpoint
 @api_view(['GET'])
@@ -20,8 +28,10 @@ def get_publishers(request):
     publishers = Publisher.objects.all().values('id', 'name', 'website')
     return Response(list(publishers))
 
+
 class EmailTokenObtainPairView(TokenObtainPairView):
     serializer_class = EmailTokenObtainPairSerializer
+
 
 @api_view(["POST"])
 @permission_classes([permissions.AllowAny])
@@ -82,12 +92,14 @@ def register(request):
         status=status.HTTP_201_CREATED,
     )
 
+
 # Widok tylko do odczytu gier
 class GameViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Game.objects.prefetch_related("genres").all()
     serializer_class = GameSerializer
 
-#Endpoint dla biblioteki
+
+# Endpoint dla biblioteki
 @api_view(["GET", "POST", "DELETE"])
 @permission_classes([IsAuthenticated])
 def library(request):
@@ -124,3 +136,108 @@ def library(request):
         user.library.remove(game)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
+#
+# ---- DODANE: Widoki dla koszyka ----
+#
+
+def get_or_create_cart(user):
+    """
+    Jeśli użytkownik ma już koszyk, zwracamy go. W przeciwnym razie tworzymy nowy.
+    """
+    cart, created = Cart.objects.get_or_create(user=user)
+    return cart
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def cart_detail(request):
+    """
+    Pobiera szczegóły koszyka zalogowanego użytkownika:
+    – lista pozycji (game, quantity, subtotal)
+    – łączna cena
+    """
+    user = request.user
+    cart = get_or_create_cart(user)
+    serializer = CartSerializer(cart, context={"request": request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cart_add_item(request):
+    """
+    Dodaje grę do koszyka (lub zwiększa ilość, jeśli już występuje).
+    Oczekiwane dane w body: {
+        "game_id": <int>,
+        "quantity": <int>  # opcjonalne, default=1
+    }
+    """
+    user = request.user
+    data = request.data
+    game_id = data.get("game_id")
+    quantity = data.get("quantity", 1)
+
+    if not game_id:
+        return Response({"detail": "game_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        game = Game.objects.get(pk=game_id)
+    except Game.DoesNotExist:
+        return Response({"detail": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    cart = get_or_create_cart(user)
+    cart_item, created = CartItem.objects.get_or_create(cart=cart, game=game)
+    if not created:
+        cart_item.quantity += int(quantity)
+    else:
+        cart_item.quantity = int(quantity)
+    cart_item.save()
+
+    serializer = CartItemSerializer(cart_item, context={"request": request})
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def cart_update_item(request, item_id: int):
+    """
+    Aktualizuje ilość pozycji w koszyku.
+    Oczekiwane dane w body: {
+        "quantity": <int>
+    }
+    """
+    user = request.user
+    new_qty = request.data.get("quantity")
+    if new_qty is None:
+        return Response({"detail": "quantity is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        cart_item = CartItem.objects.get(pk=item_id, cart__user=user)
+    except CartItem.DoesNotExist:
+        return Response({"detail": "CartItem not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    cart_item.quantity = int(new_qty)
+    if cart_item.quantity <= 0:
+        cart_item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    cart_item.save()
+    serializer = CartItemSerializer(cart_item, context={"request": request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def cart_remove_item(request, item_id: int):
+    """
+    Usuwa pozycję z koszyka.
+    """
+    user = request.user
+    try:
+        cart_item = CartItem.objects.get(pk=item_id, cart__user=user)
+    except CartItem.DoesNotExist:
+        return Response({"detail": "CartItem not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    cart_item.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

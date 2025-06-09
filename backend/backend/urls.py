@@ -12,6 +12,10 @@ from sklep_gier.views import (
     register,
     library,
     EmailTokenObtainPairView,
+    cart_detail,
+    cart_add_item,
+    cart_update_item,
+    cart_remove_item,
 )
 
 # Import widoków JWT
@@ -33,11 +37,17 @@ urlpatterns = [
     path('api/publishers/', get_publishers),
     path('api/library/', library, name='library'),
 
+    # Endpointy koszyka
+    path('api/cart/', cart_detail, name='cart_detail'),
+    path('api/cart/add/', cart_add_item, name='cart_add_item'),
+    path('api/cart/update/<int:item_id>/', cart_update_item, name='cart_update_item'),
+    path('api/cart/remove/<int:item_id>/', cart_remove_item, name='cart_remove_item'),
+
     # Rejestracja użytkownika (dostępna bez autoryzacji)
     path("api/register/", register, name="register"),
 
     # Endpointy JWT (logowanie i odświeżenie tokenu)
-    path("api/token/", EmailTokenObtainPairView.as_view(),name="token_obtain_pair"),
+    path("api/token/", EmailTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
 

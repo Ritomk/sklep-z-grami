@@ -7,9 +7,9 @@ import Register from './pages/Register';
 import LibraryPage from './pages/LibraryPage';
 import LoggedOut from "./pages/LoggedOutPage";
 import GameDetails from './pages/GameDetailPage';
+import CartPage from './pages/CartPage';       
 import Sidebar from './components/SideBar';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-
 
 function PrivateRoute({ children }: { children: ReactNode}) {
   const { isAuthenticated } = useAuth();
@@ -23,9 +23,7 @@ function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen">
       {!hideSidebar && <Sidebar />}
-      <div className="flex-1 overflow-hidden">
-        {children}
-      </div>
+      <div className="flex-1 overflow-hidden">{children}</div>
     </div>
   );
 }
@@ -43,15 +41,27 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/logout" element={<LoggedOut />} />
             <Route path="/games/:id" element={<GameDetails />} />
-            {/* Protected route */}
-            <Route 
-              path="/library" 
+
+            {/* Koszyk route */}
+            <Route
+              path="/cart"
               element={
                 <PrivateRoute>
-                  <LibraryPage/>
+                  <CartPage />
                 </PrivateRoute>
-              } 
+              }
             />
+
+            {/* Protected route */}
+            <Route
+              path="/library"
+              element={
+                <PrivateRoute>
+                  <LibraryPage />
+                </PrivateRoute>
+              }
+            />
+
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -4,12 +4,14 @@ import {
   Home as HomeIcon,
   Library as LibraryIcon,
   ShoppingBag,
+  ShoppingCart,  
   Menu,
   LogOut,
   LogIn,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";           
+import { useAuth } from "@/contexts/AuthContext";     
+      
 
 type NavItem = {
   to?: string;
@@ -37,6 +39,7 @@ export default function Sidebar() {
   const navItems: NavItem[] = [
     { to: "/", label: "Home", icon: HomeIcon },
     { to: "/store", label: "Store", icon: ShoppingBag },
+    { to: "/cart", label: "Cart", icon: ShoppingCart, guard: "auth" }, 
     { to: "/library", label: "Library", icon: LibraryIcon, guard: "auth" },
     { onClick: logout, label: "Logout", icon: LogOut, guard: "auth" },
     { to: "/login", label: "Login", icon: LogIn, guard: "guest" },
