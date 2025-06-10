@@ -1,35 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingCart } from "lucide-react";
 import api from "../lib/api";
+import CartItemRow from "@/components/CartItemRow";
+import type { CartItem } from "@/components/CartItemRow";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
-
-type Genre = {
-  id: number;
-  name: string;
-};
-
-type Publisher = {
-  id: number;
-  name: string;
-  website?: string | null;
-};
-
-interface Game {
-  id: number;
-  title: string;
-  price: number;
-  release_date: string;
-  genres: Genre[];
-  publisher: Publisher;
-  cover_image?: string | null;
-}
-
-interface CartItem {
-  id: number;
-  game: Game;
-  quantity: number;
-}
 
 interface CartResponse {
   id: number;
@@ -42,10 +18,9 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Pobierz zawartość koszyka
   const fetchCart = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const { data } = await api.get<CartResponse>("/cart/");
       setCart(data);
     } catch (err) {
@@ -56,11 +31,6 @@ export default function CartPage() {
     }
   };
 
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-  // Zaktualizuj ilość pozycji
   const updateQuantity = async (itemId: number, quantity: number) => {
     try {
       await api.patch(`/cart/update/${itemId}/`, { quantity });
@@ -70,7 +40,6 @@ export default function CartPage() {
     }
   };
 
-  // Usuń pozycję z koszyka
   const removeItem = async (itemId: number) => {
     try {
       await api.delete(`/cart/remove/${itemId}/`);
@@ -80,19 +49,19 @@ export default function CartPage() {
     }
   };
 
-  // Finalizacja zamówienia (tworzy Order i przenosi do biblioteki)
   const checkout = async () => {
     if (!cart) return;
     try {
-      // Tworzymy Order na backendzie (nie było endpointu w zadaniu, więc
-      // na razie tylko przenosimy wszystkie gry do biblioteki i czyścimy koszyk).
-      for (const item of cart.items) {
-        await api.post("/library/", { game: item.game.id });
-      }
-      // Po dodaniu do biblioteki czyścimy koszyk po kolei
-      for (const item of cart.items) {
-        await api.delete(`/cart/remove/${item.id}/`);
-      }
+      await Promise.all(
+        cart.items.map((i) =>
+          api.post("/library/", { game: i.game.id })
+        )
+      );
+      await Promise.all(
+        cart.items.map((i) =>
+          api.delete(`/cart/remove/${i.id}/`)
+        )
+      );
       alert("Order completed! Check your library.");
       fetchCart();
       navigate("/library");
@@ -102,88 +71,74 @@ export default function CartPage() {
     }
   };
 
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  const totalPrice = useMemo(() => {
+    return cart?.items
+      .reduce((sum, i) => sum + Number(i.game.price) * i.quantity, 0)
+      .toFixed(2);
+  }, [cart]);
+
   if (loading) {
-    return <div className="p-8">Ładowanie koszyka…</div>;
+    return (
+     <div className="flex items-center justify-center h-screen bg-neutral-900 text-neutral-400">
+       Loading cart…
+     </div>
+   );
   }
 
   if (!cart || cart.items.length === 0) {
     return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold mb-4">Twój Koszyk</h1>
-        <div className="text-neutral-500">Twój koszyk jest pusty.</div>
+      <div className="flex flex-col items-center justify-center h-screen bg-neutral-900 text-neutral-400">
+        <ShoppingCart size={56} className="mb-4 opacity-40" />
+        <p>Your cart is empty.</p>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Twój Koszyk</h1>
-      <ul className="space-y-4">
-        {cart.items.map((item) => (
-          <li
-            key={item.id}
-            className="flex items-center justify-between bg-neutral-800 p-4 rounded-xl shadow"
-          >
-            <div className="flex gap-4">
-              {item.game.cover_image && (
-                <img
-                  src={item.game.cover_image}
-                  alt={item.game.title}
-                  className="w-24 h-32 object-cover rounded"
-                />
-              )}
-              <div>
-                <h2 className="text-lg font-semibold">{item.game.title}</h2>
-                <div className="text-neutral-400 text-sm">
-                  {item.game.publisher?.name}
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      updateQuantity(item.id, item.quantity - 1)
-                    }
-                    disabled={item.quantity <= 1}
-                    className="px-2 py-1 bg-neutral-700 rounded disabled:opacity-50"
-                  >
-                    −
-                  </button>
-                  <span className="text-white">{item.quantity}</span>
-                  <button
-                    onClick={() =>
-                      updateQuantity(item.id, item.quantity + 1)
-                    }
-                    className="px-2 py-1 bg-neutral-700 rounded"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <span className="text-white font-bold">
-                PLN {(Number(item.game.price) * item.quantity).toFixed(2)}
-              </span>
-              <button
-                onClick={() => removeItem(item.id)}
-                className="text-red-500 hover:text-red-400"
-              >
-                <Trash2 />
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+    <div className="flex h-screen bg-neutral-900 text-white">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="sticky top-0 z-20 bg-neutral-900/80 backdrop-blur p-4 border-b border-neutral-800">
+          <h1 className="text-2xl font-bold">Your Cart</h1>
+        </header>
 
-      <div className="mt-8 flex items-center justify-between">
-        <span className="text-xl font-semibold">
-          Suma: PLN {Number(cart.total_price).toFixed(2)}
-        </span>
-        <Button
-          onClick={checkout}
-          className="bg-green-500 hover:bg-green-400 text-white"
-        >
-          Wrzuć do Biblioteki (Checkout)
-        </Button>
+        {/* Cart list */}
+        <section className="flex-1 overflow-y-auto p-4">
+          <AnimatePresence initial={false}>
+            <motion.ul
+              layout
+              className="space-y-4 max-w-4xl mx-auto"
+            >
+              {cart.items.map((item) => (
+                <CartItemRow
+                  key={item.id}
+                  item={item}
+                  onUpdate={updateQuantity}
+                  onRemove={removeItem}
+                />
+              ))}
+            </motion.ul>
+          </AnimatePresence>
+        </section>
+
+        {/* Footer */}
+        <footer className="p-4 border-t border-neutral-800 bg-neutral-900/80 backdrop-blur">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <span className="text-xl font-semibold">
+              Total: PLN&nbsp;{totalPrice}
+            </span>
+            <Button
+              onClick={checkout}
+              className="bg-yellow-500 hover:bg-yellow-400 text-black font-semibold"
+            >
+              Checkout
+            </Button>
+          </div>
+        </footer>
       </div>
     </div>
   );

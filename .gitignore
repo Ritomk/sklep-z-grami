@@ -38,4 +38,5 @@ dist-ssr
 .idea/
 .vscode/
 
-
+# === UPLOADED MEDIA ===
+backend/media/
